@@ -9,8 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from .api import scripts, practice, ai, library
 from .database import engine, Base
 
-# テーブルの作成
-Base.metadata.create_all(bind=engine)
+# テーブルの作成（DB接続失敗時もサーバーを起動できるように例外をキャッチ）
+try:
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully.")
+except Exception as e:
+    print(f"Warning: Could not create database tables: {e}")
+    print("Server will start without DB connection. Some features may be unavailable.")
 
 def create_app() -> FastAPI:
     """
