@@ -8,5 +8,6 @@ python-jose[cryptography]
 passlib[bcrypt]
 httpx
 openai
+PyMuPDF
 python-dotenv
 supabase
