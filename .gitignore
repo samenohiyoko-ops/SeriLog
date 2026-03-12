@@ -1,0 +1,32 @@
+# ==============================
+# Python / バックエンド
+# ==============================
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db
+*.sqlite3
+
+# 環境変数（APIキーなどの秘密情報！絶対にアップロードしない）
+backend/.env
+
+# ローカルのPDF保存フォルダ
+backend/app/pdf_library/
+
+# ==============================
+# Node.js / フロントエンド
+# ==============================
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env.local
+
+# ==============================
+# その他
+# ==============================
+*.log
+.DS_Store
+Thumbs.db
