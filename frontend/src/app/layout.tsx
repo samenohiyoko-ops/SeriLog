@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -21,9 +22,9 @@ export default function RootLayout({
           <header className="sticky top-0 z-50 w-full border-b glass">
             <div className="container flex h-16 items-center justify-between px-4">
               <div className="flex items-center gap-2">
-                <a href="/" className="flex items-center hover:opacity-80 transition-opacity">
+                <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
                   <img src="/logo.png" alt="SeriLog" className="h-10 w-auto object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                </a>
+                </Link>
               </div>
               <div className="flex items-center">
                 {/* 右上のメニュー選択ボタン */}
@@ -34,21 +35,21 @@ export default function RootLayout({
                     </svg>
                   </summary>
                   <div className="absolute right-0 mt-2 w-56 bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl glass overflow-hidden z-50 flex flex-col py-2">
-                    <a href="/" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
+                    <Link href="/" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
                       トップページ
-                    </a>
-                    <a href="/training" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
+                    </Link>
+                    <Link href="/training" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
                       トレーニング
-                    </a>
-                    <a href="/workspace" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
+                    </Link>
+                    <Link href="/workspace" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
                       演技練習
-                    </a>
-                    <a href="/reader" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
+                    </Link>
+                    <Link href="/reader" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold flex items-center gap-3">
                       台本読み
-                    </a>
-                    <a href="/scripts" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold opacity-70 flex items-center gap-3">
+                    </Link>
+                    <Link href="/scripts" className="px-4 py-3 hover:bg-white/10 transition-colors text-sm font-bold opacity-70 flex items-center gap-3">
                       台本ライブラリ
-                    </a>
+                    </Link>
                   </div>
                 </details>
               </div>
