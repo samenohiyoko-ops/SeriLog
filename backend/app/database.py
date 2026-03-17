@@ -23,6 +23,26 @@ if "postgresql://" in raw_url or "postgres://" in raw_url:
     port = parsed.port or 5432
     database = parsed.path.lstrip("/") if parsed.path else "postgres"
     
+    # 接続情報（パスワード除く）をログ出力してデバッグしやすくする
+    print(f"DB Auth Check - Host: {hostname}, User provided: {username}")
+
+    # --- Supabase Transaction Pooler の「Tenant or user not found」対策 ---
+    # Pooler環境に繋ぐ際、userパラメータは必ず `postgres.[ProjectID]` になっている必要があります。
+    if hostname and "pooler.supabase" in hostname:
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        project_ref = None
+        if supabase_url:
+            supa_host = urllib.parse.urlparse(supabase_url).hostname
+            if supa_host and supa_host.endswith(".supabase.co"):
+                project_ref = supa_host.replace(".supabase.co", "")
+        
+        if project_ref and not username.endswith(f".{project_ref}"):
+            base_user = username.split(".")[0] if username else "postgres"
+            username = f"{base_user}.{project_ref}"
+            print(f"Auto-corrected username to include project ref: {username}")
+    
+    print(f"Attempting DB connection to {hostname}:{port} with user '{username}'")
+    
     # URL文字列を一切受け取らず、psycopg2.connect を用いた creator 関数により接続を構築
     def get_connection():
         return psycopg2.connect(
