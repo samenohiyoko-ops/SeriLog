@@ -12,7 +12,7 @@ interface LibraryEntry {
     note?: string;
 }
 
-// ライブラリのPDFを画像ビューアーで表示するコンポーネント
+// ライブラリのPDFを画像ビューアーで表示するコンポーネント（スマホ対応）
 function PdfImageViewer({ fileId, fileName }: { fileId: string; fileName: string }) {
     const [totalPages, setTotalPages] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState(1);
@@ -25,7 +25,7 @@ function PdfImageViewer({ fileId, fileName }: { fileId: string; fileName: string
         setIsLoading(true);
         fetch(`${API_BASE}/scripts/library/${fileId}/pages`)
             .then(res => {
-                if (!res.ok) throw new Error(`ページ数取得失敗: ${res.status}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
             })
             .then(data => {
@@ -34,7 +34,7 @@ function PdfImageViewer({ fileId, fileName }: { fileId: string; fileName: string
             })
             .catch(e => {
                 console.error(e);
-                setError("PDFの読み込みに失敗しました。バックエンドが起動しているか確認してください。");
+                setError("PDFの読み込みに失敗しました。");
                 setIsLoading(false);
             });
     }, [fileId]);
@@ -52,32 +52,17 @@ function PdfImageViewer({ fileId, fileName }: { fileId: string; fileName: string
     };
 
     return (
-        <div className="flex flex-col gap-3" style={{ height: "100%" }}>
-            {/* ページコントロール */}
+        <div className="flex flex-col gap-3 h-full">
             <div className="flex items-center justify-between px-1 shrink-0">
                 <span className="text-xs opacity-50 truncate max-w-[150px]">{fileName}</span>
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => goTo(currentPage - 1)}
-                        disabled={currentPage <= 1}
-                        className="px-3 py-1 rounded glass text-sm disabled:opacity-30 hover:bg-white/10 transition-colors"
-                    >
-                        ‹ 前
-                    </button>
-                    <span className="text-sm font-mono tabular-nums">
-                        {currentPage} / {totalPages || "…"}
-                    </span>
-                    <button
-                        onClick={() => goTo(currentPage + 1)}
-                        disabled={currentPage >= totalPages}
-                        className="px-3 py-1 rounded glass text-sm disabled:opacity-30 hover:bg-white/10 transition-colors"
-                    >
-                        次 ›
-                    </button>
+                    <button onClick={() => goTo(currentPage - 1)} disabled={currentPage <= 1}
+                        className="px-3 py-1 rounded glass text-sm disabled:opacity-30 hover:bg-white/10">‹ 前</button>
+                    <span className="text-sm font-mono tabular-nums">{currentPage} / {totalPages || "…"}</span>
+                    <button onClick={() => goTo(currentPage + 1)} disabled={currentPage >= totalPages}
+                        className="px-3 py-1 rounded glass text-sm disabled:opacity-30 hover:bg-white/10">次 ›</button>
                 </div>
             </div>
-
-            {/* ページ画像 */}
             <div className="flex-1 overflow-auto rounded-lg bg-white/5 flex items-start justify-center p-2 relative">
                 {isLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
@@ -97,10 +82,7 @@ function PdfImageViewer({ fileId, fileName }: { fileId: string; fileName: string
                         className="max-w-full rounded shadow-lg"
                         style={{ display: isLoading ? "none" : "block" }}
                         onLoad={() => setIsLoading(false)}
-                        onError={() => {
-                            setIsLoading(false);
-                            setError("ページ画像の取得に失敗しました。");
-                        }}
+                        onError={() => { setIsLoading(false); setError("ページ画像の取得に失敗しました。"); }}
                     />
                 )}
             </div>
@@ -114,19 +96,16 @@ export default function ScriptReader() {
     const [localPdfUrl, setLocalPdfUrl] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string>("");
 
-    // ライブラリ
     const [library, setLibrary] = useState<LibraryEntry[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [showLibrary, setShowLibrary] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [currentLibraryId, setCurrentLibraryId] = useState<string | null>(null);
 
-    // メモ
     const [memo, setMemo] = useState("");
     const [memoSaved, setMemoSaved] = useState(false);
     const memoDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // 録音状態
     const [isRecording, setIsRecording] = useState(false);
     const [recordingSeconds, setRecordingSeconds] = useState(0);
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -174,10 +153,7 @@ export default function ScriptReader() {
         setMemo("");
         try {
             const res = await fetch(`${API_BASE}/scripts/library/${entry.id}/note`);
-            if (res.ok) {
-                const data = await res.json();
-                setMemo(data.note || "");
-            }
+            if (res.ok) { const d = await res.json(); setMemo(d.note || ""); }
         } catch { }
     };
 
@@ -187,27 +163,21 @@ export default function ScriptReader() {
         try {
             const formData = new FormData();
             formData.append("file", localFile);
-            const res = await fetch(`${API_BASE}/scripts/library/save`, {
-                method: "POST",
-                body: formData,
-            });
+            const res = await fetch(`${API_BASE}/scripts/library/save`, { method: "POST", body: formData });
             if (res.ok) {
                 const data = await res.json();
                 setSaveSuccess(true);
                 setCurrentLibraryId(data.id);
                 fetchLibrary();
-                // ライブラリ保存後は画像ビューアーに切り替え
+                // 保存後は即座に画像ビューアーへ切り替え
                 setCurrentLibraryEntry({ id: data.id, name: data.name, saved_at: data.saved_at, path: "" });
                 setLocalFile(null);
                 if (localPdfUrl) URL.revokeObjectURL(localPdfUrl);
                 setLocalPdfUrl(null);
                 setTimeout(() => setSaveSuccess(false), 3000);
             }
-        } catch {
-            alert("保存に失敗しました。");
-        } finally {
-            setIsSaving(false);
-        }
+        } catch { alert("保存に失敗しました。"); }
+        finally { setIsSaving(false); }
     };
 
     useEffect(() => {
@@ -216,8 +186,7 @@ export default function ScriptReader() {
         memoDebounceRef.current = setTimeout(async () => {
             try {
                 await fetch(`${API_BASE}/scripts/library/${currentLibraryId}/note`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
+                    method: "PUT", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ note: memo }),
                 });
                 setMemoSaved(true);
@@ -231,19 +200,12 @@ export default function ScriptReader() {
         if (!confirm("このPDFをライブラリから削除しますか？")) return;
         await fetch(`${API_BASE}/scripts/library/${id}`, { method: "DELETE" });
         fetchLibrary();
-        if (currentLibraryId === id) {
-            setCurrentLibraryEntry(null);
-            setCurrentLibraryId(null);
-            setFileName("");
-        }
+        if (currentLibraryId === id) { setCurrentLibraryEntry(null); setCurrentLibraryId(null); setFileName(""); }
     };
 
     useEffect(() => {
-        if (isRecording) {
-            timerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
-        } else {
-            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-        }
+        if (isRecording) { timerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000); }
+        else { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }, [isRecording]);
 
@@ -256,9 +218,7 @@ export default function ScriptReader() {
             mr.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
             mr.onstop = () => setAudioUrl(URL.createObjectURL(new Blob(audioChunksRef.current, { type: "audio/webm" })));
             mr.start(300);
-            setIsRecording(true);
-            setRecordingSeconds(0);
-            setAudioUrl(null);
+            setIsRecording(true); setRecordingSeconds(0); setAudioUrl(null);
         } catch { alert("マイクのアクセス許可が必要です。"); }
     };
 
@@ -289,34 +249,37 @@ export default function ScriptReader() {
     const hasPdf = currentLibraryEntry !== null || localFile !== null;
 
     return (
-        <div className="container mx-auto p-4 flex flex-col gap-4">
+        <div className="container mx-auto p-6 flex flex-col gap-6">
             {/* ヘッダー */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h1 className="text-xl font-bold premium-text">台本読み練習</h1>
+                    <h1 className="text-2xl font-bold premium-text">台本読み練習</h1>
+                    <p className="text-xs opacity-50 mt-1">PDFを表示しながら、ページをめくっても収録が継続されます</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                     {localFile && !saveSuccess && (
-                        <button
-                            onClick={saveToLibrary}
-                            disabled={isSaving}
-                            className="px-3 py-1.5 rounded-lg text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors flex items-center gap-2 disabled:opacity-50"
-                        >
+                        <button onClick={saveToLibrary} disabled={isSaving}
+                            className="px-4 py-2 rounded-lg text-sm border border-primary/40 text-primary hover:bg-primary/10 transition-colors flex items-center gap-2 disabled:opacity-50">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
                             {isSaving ? "保存中..." : "ライブラリに保存"}
                         </button>
                     )}
-                    {saveSuccess && <span className="text-xs text-green-400">✓ 保存しました</span>}
-                    <button
-                        onClick={() => setShowLibrary(v => !v)}
-                        className={`glass px-3 py-1.5 rounded-lg text-sm hover:bg-white/10 transition-colors flex items-center gap-1.5 ${showLibrary ? "ring-1 ring-primary/40" : ""}`}
-                    >
+                    {saveSuccess && <span className="text-xs text-green-400">✓ ライブラリに保存しました</span>}
+                    <button onClick={() => setShowLibrary(v => !v)}
+                        className={`glass px-4 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors flex items-center gap-2 ${showLibrary ? "ring-1 ring-primary/40" : ""}`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
                         ライブラリ ({library.length})
                     </button>
                     <input type="file" accept=".pdf" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="glass px-3 py-1.5 rounded-lg text-sm hover:bg-white/10 transition-colors"
-                    >
+                    <button onClick={() => fileInputRef.current?.click()}
+                        className="glass px-4 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
                         PDFを開く
                     </button>
                 </div>
@@ -336,11 +299,8 @@ export default function ScriptReader() {
                                         <p className="text-sm font-medium truncate">{entry.name}</p>
                                         <p className="text-[10px] opacity-40">{formatDate(entry.saved_at)}</p>
                                     </button>
-                                    <button
-                                        onClick={() => deleteFromLibrary(entry.id)}
-                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1 text-red-400"
-                                        title="削除"
-                                    >
+                                    <button onClick={() => deleteFromLibrary(entry.id)}
+                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1 text-red-400" title="削除">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2" />
                                         </svg>
@@ -353,120 +313,159 @@ export default function ScriptReader() {
             )}
 
             {hasPdf ? (
-                /* ===== PDF表示中レイアウト ===== */
-                /* PC: 左側PDF(横広) + 右側コントロール(縦長)。スマホ: 縦積み */
-                <div className="flex flex-col lg:flex-row gap-4">
-
-                    {/* PDF表示エリア：スマホは画面高さの60%、PCはビューポートいっぱい */}
-                    <div className="w-full lg:flex-1 flex flex-col gap-2"
-                        style={{ height: "60svh" }}
-                    >
-                        <div className="glass rounded-xl p-3 flex flex-col h-full overflow-hidden">
+                /* ===== PDF表示中：元のgridレイアウト (左8 / 右4) ===== */
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    {/* PDF表示エリア */}
+                    <div className="lg:col-span-8">
+                        <div className="glass rounded-xl overflow-hidden" style={{ height: "80vh" }}>
                             {isRecording && (
-                                <div className="flex items-center gap-2 px-2 py-1 mb-2 rounded bg-red-500/10 border border-red-500/20 shrink-0">
-                                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-red-500/10">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
                                     <span className="text-xs text-red-400 font-mono font-bold">● REC {formatTime(recordingSeconds)}</span>
+                                    <span className="text-[10px] opacity-40 ml-2">ページをめくっても収録は継続中</span>
                                 </div>
                             )}
-                            {/* ライブラリのPDFは画像ビューアー（スマホ対応） */}
+
+                            {/* ライブラリのPDF → 画像ビューアー（スマホ対応） */}
                             {currentLibraryEntry ? (
-                                <PdfImageViewer fileId={currentLibraryEntry.id} fileName={currentLibraryEntry.name} />
+                                <div className="p-3 h-full flex flex-col" style={{ height: isRecording ? "calc(100% - 37px)" : "100%" }}>
+                                    <PdfImageViewer fileId={currentLibraryEntry.id} fileName={currentLibraryEntry.name} />
+                                </div>
                             ) : localPdfUrl ? (
-                                /* ローカルPDFはiframe（PC）+ スマホ向けダウンロードリンク */
-                                <div className="flex flex-col gap-2 h-full">
-                                    <span className="text-xs opacity-40 truncate shrink-0">{fileName}（ローカルファイル）</span>
-                                    <iframe src={localPdfUrl} className="flex-1 rounded w-full" title="台本PDF" />
-                                    <a href={localPdfUrl} download={fileName} className="text-center text-xs text-primary hover:underline shrink-0">
-                                        ↓ スマホで表示されない場合はダウンロード
-                                    </a>
+                                /* ローカルPDF: スマホ向けガイド + PCではiframe */
+                                <div className="h-full flex flex-col">
+                                    {/* スマホ向け案内（md以下で表示、PCでは非表示） */}
+                                    <div className="block md:hidden p-6 flex flex-col items-center justify-center gap-4 h-full text-center">
+                                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p className="font-bold mb-1">スマホでPDFを閲覧するには</p>
+                                            <p className="text-sm opacity-60">「ライブラリに保存」ボタンを押すと、スマホでもページを画像で閲覧できます。</p>
+                                        </div>
+                                        <button onClick={saveToLibrary} disabled={isSaving}
+                                            className="premium-gradient px-6 py-3 rounded-xl text-white font-bold hover:scale-105 transition-transform disabled:opacity-50">
+                                            {isSaving ? "保存中..." : "ライブラリに保存してスマホ表示"}
+                                        </button>
+                                    </div>
+                                    {/* PC向けiframe（md以上で表示） */}
+                                    <iframe
+                                        src={localPdfUrl}
+                                        className="hidden md:block w-full"
+                                        style={{ height: isRecording ? "calc(100% - 37px)" : "100%" }}
+                                        title="台本PDF"
+                                    />
                                 </div>
                             ) : null}
                         </div>
                     </div>
 
-                    {/* 録音コントロール：PC横並び、スマホ縦並び */}
-                    <div className="w-full lg:w-72 xl:w-80 flex flex-col gap-3">
-                        <div className="glass rounded-xl p-5 flex flex-col items-center gap-4">
-                            <h3 className="text-base font-bold w-full border-b pb-2">録音コントロール</h3>
-                            <p className="text-xs opacity-40 truncate w-full text-center">{fileName}</p>
-
-                            {/* 録音ボタン */}
-                            <div className={`w-28 h-28 rounded-full border-4 flex items-center justify-center ${isRecording ? "border-red-500/50" : "border-primary/30"}`}>
-                                <button
-                                    onClick={isRecording ? stopRecording : startRecording}
-                                    className={`w-20 h-20 rounded-full flex items-center justify-center shadow-lg transition-all ${isRecording ? "bg-red-500 animate-pulse" : "premium-gradient hover:scale-105"}`}
-                                >
+                    {/* 録音コントロール */}
+                    <div className="lg:col-span-4 flex flex-col gap-4">
+                        <div className="glass rounded-xl p-6 flex flex-col items-center gap-6">
+                            <h3 className="text-lg font-bold w-full border-b pb-2">録音コントロール</h3>
+                            <p className="text-xs opacity-50 font-medium truncate max-w-[180px]">{fileName}</p>
+                            <div className="flex flex-col items-center gap-4">
+                                <div className={`w-32 h-32 rounded-full border-4 flex items-center justify-center transition-all ${isRecording ? "border-red-500/50" : "border-primary/30"}`}>
+                                    <button onClick={isRecording ? stopRecording : startRecording}
+                                        className={`w-24 h-24 rounded-full flex items-center justify-center transition-all shadow-lg ${isRecording ? "bg-red-500 animate-pulse hover:bg-red-600" : "premium-gradient hover:scale-105"}`}>
+                                        {isRecording ? (
+                                            <div className="w-8 h-8 bg-white rounded-sm" />
+                                        ) : (
+                                            <svg className="w-10 h-10 text-white fill-current" viewBox="0 0 24 24">
+                                                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                                                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                                <div className="text-center">
                                     {isRecording ? (
-                                        <div className="w-7 h-7 bg-white rounded-sm" />
+                                        <div className="flex flex-col items-center gap-1">
+                                            <p className="font-bold text-red-400">収録中</p>
+                                            <p className="font-mono text-3xl font-bold text-red-300">{formatTime(recordingSeconds)}</p>
+                                            <p className="text-[10px] opacity-40">ページをめくっても収録は続きます</p>
+                                        </div>
                                     ) : (
-                                        <svg className="w-9 h-9 text-white fill-current" viewBox="0 0 24 24">
-                                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
-                                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-                                        </svg>
+                                        <p className="text-sm opacity-60">{audioUrl ? "収録完了" : "待機中"}</p>
                                     )}
-                                </button>
+                                </div>
                             </div>
 
-                            {isRecording ? (
-                                <div className="text-center">
-                                    <p className="font-bold text-red-400 text-sm">収録中</p>
-                                    <p className="font-mono text-2xl font-bold text-red-300">{formatTime(recordingSeconds)}</p>
-                                </div>
-                            ) : (
-                                <p className="text-sm opacity-50">{audioUrl ? "収録完了" : "待機中"}</p>
-                            )}
-
                             {audioUrl && !isRecording && (
-                                <div className="w-full flex flex-col gap-2">
-                                    <audio src={audioUrl} controls className="w-full h-8" />
-                                    <button onClick={downloadAudio} className="w-full py-2 text-xs glass rounded-lg hover:bg-white/10 text-center">
-                                        ↓ 音声をダウンロード
+                                <div className="w-full flex flex-col gap-3 animate-in fade-in duration-500">
+                                    <div className="p-3 glass rounded-lg border border-primary/20">
+                                        <p className="text-[10px] text-primary font-bold uppercase tracking-wider mb-2">収録した音声</p>
+                                        <audio src={audioUrl} controls className="w-full h-8" />
+                                    </div>
+                                    <button onClick={downloadAudio} className="w-full py-2 text-xs glass rounded-lg hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        音声をダウンロード
                                     </button>
-                                    <button onClick={() => { setAudioUrl(null); setRecordingSeconds(0); }} className="w-full py-1 text-xs opacity-40 hover:opacity-80">
+                                    <button onClick={() => { setAudioUrl(null); setRecordingSeconds(0); }} className="w-full py-2 text-xs opacity-40 hover:opacity-80 transition-opacity">
                                         クリアして再収録
                                     </button>
                                 </div>
                             )}
 
-                            {/* メモエリア */}
-                            <div className="w-full border-t pt-3 flex flex-col gap-1">
-                                <div className="flex items-center justify-between">
-                                    <h4 className="text-[10px] uppercase tracking-wider text-primary font-bold">メモ</h4>
-                                    {memoSaved && <span className="text-[10px] text-green-400">✓ 保存済み</span>}
+                            <div className="w-full border-t pt-4 mt-auto flex flex-col gap-3">
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h4 className="text-[10px] uppercase tracking-wider text-primary font-bold">メモ</h4>
+                                        {memoSaved && <span className="text-[10px] text-green-400">✓ 保存済み</span>}
+                                    </div>
+                                    <textarea
+                                        value={memo}
+                                        onChange={(e) => setMemo(e.target.value)}
+                                        placeholder="気になったセリフ・演技のポイントなど自由にメモ…"
+                                        rows={5}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs resize-none focus:ring-1 focus:ring-primary outline-none leading-relaxed"
+                                    />
+                                    <p className="text-[10px] opacity-30 mt-1">
+                                        {currentLibraryId ? "入力後1.5秒で自動保存されます" : "ライブラリに保存するとメモも永続保存されます"}
+                                    </p>
                                 </div>
-                                <textarea
-                                    value={memo}
-                                    onChange={(e) => setMemo(e.target.value)}
-                                    placeholder="演技のポイントなど…"
-                                    rows={4}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs resize-none focus:ring-1 focus:ring-primary outline-none"
-                                />
-                                <p className="text-[10px] opacity-30">
-                                    {currentLibraryId ? "自動保存されます" : "ライブラリに保存するとメモも保持されます"}
-                                </p>
+                                <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                                    <h4 className="text-[10px] uppercase tracking-wider text-primary font-bold mb-2">使い方</h4>
+                                    <ul className="text-[10px] opacity-60 space-y-1">
+                                        <li>• PDFを開いたらマイクボタンで収録開始</li>
+                                        <li>• ライブラリに保存するとスマホでも閲覧可能</li>
+                                        <li>• メモは台本ごとに自動保存されます</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             ) : (
-                /* ===== PDF未選択の初期画面 ===== */
-                <div className="glass rounded-xl flex flex-col items-center justify-center gap-6 py-20">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                        <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                /* ===== 初期画面 ===== */
+                <div className="glass rounded-xl min-h-[70vh] flex flex-col items-center justify-center gap-6">
+                    <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
+                        <svg className="w-12 h-12 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                     </div>
                     <div className="text-center">
-                        <h2 className="text-xl font-bold mb-1">台本PDFを開いてください</h2>
-                        <p className="text-sm opacity-50">「PDFを開く」からファイルを選択、または保存済み台本をライブラリから選べます。</p>
+                        <h2 className="text-xl font-bold mb-2">台本PDFを開いてください</h2>
+                        <p className="text-sm opacity-50">「PDFを開く」からファイルを選択、または「ライブラリ」から保存済み台本を選べます。</p>
                         <p className="text-xs opacity-30 mt-1">ライブラリに保存したPDFはスマホでもページを画像で閲覧できます。</p>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap justify-center">
-                        <button onClick={() => fileInputRef.current?.click()} className="premium-gradient px-6 py-3 rounded-xl text-white font-bold hover:scale-105 transition-transform">
+                        <button onClick={() => fileInputRef.current?.click()} className="premium-gradient px-6 py-3 rounded-xl text-white font-bold hover:scale-105 transition-transform flex items-center gap-2">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
                             PDFを開く
                         </button>
                         {library.length > 0 && (
-                            <button onClick={() => setShowLibrary(true)} className="glass px-6 py-3 rounded-xl font-bold hover:bg-white/10">
+                            <button onClick={() => setShowLibrary(true)} className="glass px-6 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors flex items-center gap-2">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
                                 ライブラリから選ぶ ({library.length})
                             </button>
                         )}
