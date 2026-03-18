@@ -317,7 +317,7 @@ export default function ScriptReader() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* PDF表示エリア */}
                     <div className="lg:col-span-8">
-                        <div className="glass rounded-xl overflow-hidden" style={{ height: "80vh" }}>
+                        <div className="glass rounded-xl overflow-hidden" style={{ aspectRatio: "257 / 182", maxHeight: "85vh" }}>
                             {isRecording && (
                                 <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-red-500/10">
                                     <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
