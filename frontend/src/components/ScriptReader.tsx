@@ -12,17 +12,129 @@ interface LibraryEntry {
     note?: string;
 }
 
+// ライブラリのPDFを画像ビューアーで表示するコンポーネント
+function PdfImageViewer({ fileId, fileName }: { fileId: string; fileName: string }) {
+    const [totalPages, setTotalPages] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [imgSrc, setImgSrc] = useState<string>("");
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        // 総ページ数を取得
+        fetch(`${API_BASE}/scripts/library/${fileId}/pages`)
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data) {
+                    setTotalPages(data.page_count);
+                    setCurrentPage(1);
+                }
+            })
+            .catch(console.error);
+    }, [fileId]);
+
+    useEffect(() => {
+        if (!fileId || totalPages === 0) return;
+        setIsLoading(true);
+        setImgSrc(`${API_BASE}/scripts/library/${fileId}/page/${currentPage}?t=${Date.now()}`);
+    }, [fileId, currentPage, totalPages]);
+
+    const goTo = (p: number) => {
+        if (p < 1 || p > totalPages) return;
+        setCurrentPage(p);
+    };
+
+    return (
+        <div className="flex flex-col gap-3 h-full">
+            {/* ページコントロール */}
+            <div className="flex items-center justify-between px-2">
+                <span className="text-xs opacity-50 truncate max-w-[150px]">{fileName}</span>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => goTo(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        className="px-3 py-1 rounded glass text-sm disabled:opacity-30 hover:bg-white/10 transition-colors"
+                    >
+                        ‹ 前
+                    </button>
+                    <span className="text-sm font-mono">
+                        {currentPage} / {totalPages || "…"}
+                    </span>
+                    <button
+                        onClick={() => goTo(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                        className="px-3 py-1 rounded glass text-sm disabled:opacity-30 hover:bg-white/10 transition-colors"
+                    >
+                        次 ›
+                    </button>
+                </div>
+            </div>
+
+            {/* ページ画像 */}
+            <div className="flex-1 overflow-auto rounded-lg bg-white/5 flex items-start justify-center p-2">
+                {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+                {imgSrc && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={imgSrc}
+                        alt={`ページ ${currentPage}`}
+                        className="max-w-full rounded shadow-lg"
+                        onLoad={() => setIsLoading(false)}
+                        onError={() => setIsLoading(false)}
+                    />
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ローカルPDFを画像ビューアーで表示するコンポーネント（pdfjs-dist なしでもOKな簡易版）
+function LocalPdfViewer({ file, fileName }: { file: File; fileName: string }) {
+    const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        const url = URL.createObjectURL(file);
+        setBlobUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [file]);
+
+    if (!blobUrl) return null;
+
+    return (
+        <div className="flex flex-col gap-2 h-full">
+            <span className="text-xs opacity-50 px-2 truncate">{fileName}</span>
+            {/* iframeはPC向けフォールバック、スマホ向けにはダウンロードボタンも提供 */}
+            <div className="flex-1 rounded-lg overflow-hidden border border-white/10">
+                <iframe
+                    src={blobUrl}
+                    className="w-full h-full"
+                    title="台本PDF (ローカル)"
+                />
+            </div>
+            <a
+                href={blobUrl}
+                download={fileName}
+                className="text-center text-xs text-primary hover:underline py-1"
+            >
+                ↓ スマホで見づらい場合はこちらからダウンロード
+            </a>
+        </div>
+    );
+}
+
 export default function ScriptReader() {
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const [currentLibraryEntry, setCurrentLibraryEntry] = useState<LibraryEntry | null>(null);
+    const [localFile, setLocalFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState<string>("");
-    const [currentFile, setCurrentFile] = useState<File | null>(null);
 
     // ライブラリ
     const [library, setLibrary] = useState<LibraryEntry[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [showLibrary, setShowLibrary] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
-    // 現在開いているライブラリエントリのID（メモ保存用）
     const [currentLibraryId, setCurrentLibraryId] = useState<string | null>(null);
 
     // メモ
@@ -56,29 +168,26 @@ export default function ScriptReader() {
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && file.type === "application/pdf") {
-            if (pdfUrl && !pdfUrl.startsWith(API_BASE)) URL.revokeObjectURL(pdfUrl);
-            const url = URL.createObjectURL(file);
-            setPdfUrl(url);
+            setLocalFile(file);
             setFileName(file.name);
-            setCurrentFile(file);
+            setCurrentLibraryEntry(null);
             setAudioUrl(null);
             setRecordingSeconds(0);
             setSaveSuccess(false);
+            setCurrentLibraryId(null);
         }
     };
 
     // ライブラリからPDFを選択
     const openFromLibrary = async (entry: LibraryEntry) => {
-        const url = `${API_BASE}/scripts/library/${entry.id}`;
-        setPdfUrl(url);
+        setCurrentLibraryEntry(entry);
+        setLocalFile(null);
         setFileName(entry.name);
-        setCurrentFile(null);
         setCurrentLibraryId(entry.id);
         setAudioUrl(null);
         setRecordingSeconds(0);
         setSaveSuccess(false);
         setShowLibrary(false);
-        // メモを読み込む
         setMemo("");
         try {
             const res = await fetch(`${API_BASE}/scripts/library/${entry.id}/note`);
@@ -91,11 +200,11 @@ export default function ScriptReader() {
 
     // ライブラリに保存
     const saveToLibrary = async () => {
-        if (!currentFile) return;
+        if (!localFile) return;
         setIsSaving(true);
         try {
             const formData = new FormData();
-            formData.append("file", currentFile);
+            formData.append("file", localFile);
             const res = await fetch(`${API_BASE}/scripts/library/save`, {
                 method: "POST",
                 body: formData,
@@ -103,8 +212,9 @@ export default function ScriptReader() {
             if (res.ok) {
                 const data = await res.json();
                 setSaveSuccess(true);
-                setCurrentFile(null);
-                setCurrentLibraryId(data.id); // 保存後は自動でこのIDを使う
+                setLocalFile(null);
+                setCurrentLibraryId(data.id);
+                // 保存後はライブラリエントリとして再設定
                 fetchLibrary();
                 setTimeout(() => setSaveSuccess(false), 3000);
             }
@@ -140,6 +250,11 @@ export default function ScriptReader() {
         if (!confirm("このPDFをライブラリから削除しますか？")) return;
         await fetch(`${API_BASE}/scripts/library/${id}`, { method: "DELETE" });
         fetchLibrary();
+        if (currentLibraryId === id) {
+            setCurrentLibraryEntry(null);
+            setCurrentLibraryId(null);
+            setFileName("");
+        }
     };
 
     // 録音タイマー
@@ -196,6 +311,8 @@ export default function ScriptReader() {
         return `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getDate().toString().padStart(2, "0")}`;
     };
 
+    const hasPdf = currentLibraryEntry !== null || localFile !== null;
+
     return (
         <div className="container mx-auto p-6 flex flex-col gap-6">
             {/* ヘッダー */}
@@ -205,8 +322,7 @@ export default function ScriptReader() {
                     <p className="text-xs opacity-50 mt-1">PDFを表示しながら、ページをめくっても収録が継続されます</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    {/* ライブラリ保存ボタン（ローカルから開いた場合のみ） */}
-                    {currentFile && !saveSuccess && (
+                    {localFile && !saveSuccess && (
                         <button
                             onClick={saveToLibrary}
                             disabled={isSaving}
@@ -219,11 +335,8 @@ export default function ScriptReader() {
                         </button>
                     )}
                     {saveSuccess && (
-                        <span className="text-xs text-green-400 flex items-center gap-1">
-                            ✓ ライブラリに保存しました
-                        </span>
+                        <span className="text-xs text-green-400 flex items-center gap-1">✓ ライブラリに保存しました</span>
                     )}
-                    {/* ライブラリから選択 */}
                     <button
                         onClick={() => setShowLibrary(v => !v)}
                         className={`glass px-4 py-2 rounded-lg text-sm hover:bg-white/10 transition-colors flex items-center gap-2 ${showLibrary ? "ring-1 ring-primary/40" : ""}`}
@@ -233,7 +346,6 @@ export default function ScriptReader() {
                         </svg>
                         ライブラリ ({library.length})
                     </button>
-                    {/* ローカルからPDFを開く */}
                     <input type="file" accept=".pdf" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
                     <button
                         onClick={() => fileInputRef.current?.click()}
@@ -247,25 +359,17 @@ export default function ScriptReader() {
                 </div>
             </div>
 
-            {/* ライブラリパネル（展開時） */}
+            {/* ライブラリパネル */}
             {showLibrary && (
                 <div className="glass rounded-xl p-4 animate-in slide-in-from-top-2 duration-300">
-                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        保存済み台本
-                    </h3>
+                    <h3 className="text-sm font-bold mb-3">保存済み台本</h3>
                     {library.length === 0 ? (
                         <p className="text-sm opacity-40 py-4 text-center">保存済みの台本はありません。PDFを開いて「ライブラリに保存」してください。</p>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {library.map(entry => (
                                 <div key={entry.id} className="flex items-center gap-2 p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors group">
-                                    <button
-                                        onClick={() => openFromLibrary(entry)}
-                                        className="flex-1 text-left"
-                                    >
+                                    <button onClick={() => openFromLibrary(entry)} className="flex-1 text-left">
                                         <p className="text-sm font-medium truncate">{entry.name}</p>
                                         <p className="text-[10px] opacity-40">{formatDate(entry.saved_at)}</p>
                                     </button>
@@ -285,26 +389,25 @@ export default function ScriptReader() {
                 </div>
             )}
 
-            {pdfUrl ? (
+            {hasPdf ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     {/* PDF表示エリア */}
                     <div className="lg:col-span-8">
-                        <div className="glass rounded-xl overflow-hidden" style={{ height: "80vh" }}>
+                        <div className="glass rounded-xl overflow-hidden p-3 flex flex-col" style={{ minHeight: "80vh" }}>
                             {isRecording && (
-                                <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-red-500/10">
+                                <div className="flex items-center gap-2 px-2 py-1 mb-2 rounded bg-red-500/10 border border-red-500/20">
                                     <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                                    <span className="text-xs text-red-400 font-mono font-bold">
-                                        ● REC {formatTime(recordingSeconds)}
-                                    </span>
+                                    <span className="text-xs text-red-400 font-mono font-bold">● REC {formatTime(recordingSeconds)}</span>
                                     <span className="text-[10px] opacity-40 ml-2">ページをめくっても収録は継続中</span>
                                 </div>
                             )}
-                            <iframe
-                                src={pdfUrl}
-                                className="w-full"
-                                style={{ height: isRecording ? "calc(100% - 37px)" : "100%" }}
-                                title="台本PDF"
-                            />
+                            <div className="flex-1">
+                                {currentLibraryEntry ? (
+                                    <PdfImageViewer fileId={currentLibraryEntry.id} fileName={currentLibraryEntry.name} />
+                                ) : localFile ? (
+                                    <LocalPdfViewer file={localFile} fileName={fileName} />
+                                ) : null}
+                            </div>
                         </div>
                     </div>
 
@@ -336,7 +439,6 @@ export default function ScriptReader() {
                                         <div className="flex flex-col items-center gap-1">
                                             <p className="font-bold text-red-400">収録中</p>
                                             <p className="font-mono text-3xl font-bold text-red-300">{formatTime(recordingSeconds)}</p>
-                                            <p className="text-[10px] opacity-40">ページをめくっても収録は続きます</p>
                                         </div>
                                     ) : (
                                         <p className="text-sm opacity-60">{audioUrl ? "収録完了" : "待機中"}</p>
@@ -363,37 +465,21 @@ export default function ScriptReader() {
                             )}
 
                             <div className="w-full border-t pt-4 mt-auto flex flex-col gap-3">
-                                {/* メモエリア（PDF表示中は常に表示） */}
-                                {pdfUrl && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h4 className="text-[10px] uppercase tracking-wider text-primary font-bold">メモ</h4>
-                                            {memoSaved && (
-                                                <span className="text-[10px] text-green-400">✓ 保存済み</span>
-                                            )}
-                                        </div>
-                                        <textarea
-                                            value={memo}
-                                            onChange={(e) => setMemo(e.target.value)}
-                                            placeholder="気になったセリフ・演技のポイントなど自由にメモ…"
-                                            rows={5}
-                                            className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs resize-none focus:ring-1 focus:ring-primary outline-none leading-relaxed"
-                                        />
-                                        <p className="text-[10px] opacity-30 mt-1">
-                                            {currentLibraryId
-                                                ? "入力後1.5秒で自動保存されます"
-                                                : "ライブラリに保存するとメモも永続保存されます"}
-                                        </p>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <h4 className="text-[10px] uppercase tracking-wider text-primary font-bold">メモ</h4>
+                                        {memoSaved && <span className="text-[10px] text-green-400">✓ 保存済み</span>}
                                     </div>
-                                )}
-                                <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-                                    <h4 className="text-[10px] uppercase tracking-wider text-primary font-bold mb-2">使い方</h4>
-                                    <ul className="text-[10px] opacity-60 space-y-1">
-                                        <li>• PDFを開いたらマイクボタンで収録開始</li>
-                                        <li>• PDF内でページを自由にめくれます</li>
-                                        <li>• 「ライブラリに保存」で次回も使用可能</li>
-                                        <li>• メモは台本ごとに自動保存されます</li>
-                                    </ul>
+                                    <textarea
+                                        value={memo}
+                                        onChange={(e) => setMemo(e.target.value)}
+                                        placeholder="気になったセリフ・演技のポイントなど自由にメモ…"
+                                        rows={5}
+                                        className="w-full bg-white/5 border border-white/10 rounded-lg p-2 text-xs resize-none focus:ring-1 focus:ring-primary outline-none leading-relaxed"
+                                    />
+                                    <p className="text-[10px] opacity-30 mt-1">
+                                        {currentLibraryId ? "入力後1.5秒で自動保存されます" : "ライブラリに保存するとメモも永続保存されます"}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -409,8 +495,9 @@ export default function ScriptReader() {
                     <div className="text-center">
                         <h2 className="text-xl font-bold mb-2">台本PDFを開いてください</h2>
                         <p className="text-sm opacity-50">「PDFを開く」からファイルを選択、または「ライブラリ」から保存済み台本を選べます。</p>
+                        <p className="text-xs opacity-40 mt-1">ライブラリに保存したPDFはスマホでもそのまま表示できます。</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap justify-center">
                         <button onClick={() => fileInputRef.current?.click()} className="premium-gradient px-6 py-3 rounded-xl text-white font-bold hover:scale-105 transition-transform flex items-center gap-2">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />

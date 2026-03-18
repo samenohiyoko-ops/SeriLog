@@ -157,3 +157,62 @@ async def delete_pdf(file_id: str):
             
     _save_metadata([m for m in metadata if m["id"] != file_id])
     return {"message": "削除しました。"}
+
+
+# --- PDF画像変換ヘルパー ---
+
+async def _get_pdf_bytes(file_id: str) -> bytes:
+    """file_idに対応するPDFをbytesで取得する共通処理"""
+    import httpx
+    metadata = _load_metadata()
+    entry = next((m for m in metadata if m["id"] == file_id), None)
+    if not entry:
+        raise HTTPException(status_code=404, detail="PDFが見つかりません。")
+    path = entry.get("path", "")
+    if path.startswith("http"):
+        async with httpx.AsyncClient() as client:
+            r = await client.get(path)
+            r.raise_for_status()
+            return r.content
+    elif os.path.exists(path):
+        with open(path, "rb") as f:
+            return f.read()
+    raise HTTPException(status_code=404, detail="PDFファイルが見つかりません。")
+
+
+@router.get("/{file_id}/pages")
+async def get_page_count(file_id: str):
+    """PDFの総ページ数を返す。"""
+    import fitz
+    try:
+        pdf_bytes = await _get_pdf_bytes(file_id)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        count = doc.page_count
+        doc.close()
+        return {"page_count": count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF解析エラー: {e}")
+
+
+@router.get("/{file_id}/page/{page_num}")
+async def get_page_image(file_id: str, page_num: int, scale: float = 2.0):
+    """指定ページをPNG画像として返す（page_numは1始まり）。"""
+    import fitz
+    from fastapi.responses import Response
+    try:
+        pdf_bytes = await _get_pdf_bytes(file_id)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        if page_num < 1 or page_num > doc.page_count:
+            raise HTTPException(status_code=404, detail="ページが存在しません。")
+        page = doc.load_page(page_num - 1)
+        mat = fitz.Matrix(scale, scale)
+        pix = page.get_pixmap(matrix=mat)
+        img_bytes = pix.tobytes("png")
+        doc.close()
+        return Response(content=img_bytes, media_type="image/png")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF変換エラー: {e}")
