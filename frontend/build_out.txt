@@ -1,0 +1,78 @@
+﻿
+> frontend@0.1.0 build
+> next build
+
+笆ｲ Next.js 16.1.7 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+node.exe : 筧ｯ ERROR: T
+his build is using Tur
+bopack, with a `webpac
+k` config and no `turb
+opack` config.
+発生場所 行:1 文字:1
++ & "C:\Program Files\
+nodejs/node.exe" "C:\P
+rogram Files\nodejs/no
+de_mo ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (筧ｯ ERROR:    
+ This ...bopack` c    
+onfig.:String) []    ,
+ RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+   This may be a mista
+ke.
+
+   As of Next.js 16 Tu
+rbopack is enabled by 
+default and
+   custom webpack conf
+igurations may need to
+ be migrated to Turbop
+ack.
+
+   NOTE: your `webpack
+` config may have been
+ added by a configurat
+ion plugin.
+
+   To configure Turbop
+ack, see https://nextj
+s.org/docs/app/api-ref
+erence/next-config-js/
+turbopack
+
+   TIP: Many applicati
+ons work fine under Tu
+rbopack with no config
+uration,
+   if that is the case
+ for you, you can sile
+nce this error by pass
+ing the
+   `--turbopack` or `-
+-webpack` flag explici
+tly or simply setting 
+an 
+   empty turbopack con
+fig in your Next confi
+g file (e.g. `turbopac
+k: {}`).
+
+> Build error occurred
+Error: Call retries we
+re exceeded
+    at ignore-listed f
+rames {
+  type: 'WorkerError'
+}

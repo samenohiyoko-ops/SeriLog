@@ -19,7 +19,6 @@ export default function Workspace() {
     const [audioUrl, setAudioUrl] = useState<string | null>(null);
     const [memoMode, setMemoMode] = useState(false);
     const [maskedIndices, setMaskedIndices] = useState<Set<number>>(new Set());
-    const [isSaving, setIsSaving] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [availableRoles, setAvailableRoles] = useState<string[]>([]);
 
@@ -28,8 +27,6 @@ export default function Workspace() {
     const [currentGenre, setCurrentGenre] = useState("女性");
     const [shortPracticeText, setShortPracticeText] = useState("");
     const [isFetchingShort, setIsFetchingShort] = useState(false);
-    const [aiAdvice, setAiAdvice] = useState<string | null>(null);
-    const [isFetchingAdvice, setIsFetchingAdvice] = useState(false);
     const [sampleAudioUrl, setSampleAudioUrl] = useState<string | null>(null);
     const [isGeneratingSpeech, setIsGeneratingSpeech] = useState(false);
 
@@ -77,7 +74,6 @@ export default function Workspace() {
                 const data = await response.json();
                 setShortPracticeText(data.text);
                 setCurrentGenre(genre);
-                setAiAdvice(null);
                 setSampleAudioUrl(null);
             }
         } catch (err) {
@@ -104,30 +100,13 @@ export default function Workspace() {
         }
     };
 
-    const handleGetAdvice = async () => {
-        if (!shortPracticeText) return;
-        setIsFetchingAdvice(true);
-        try {
-            const response = await fetch(`${API_BASE}/ai/advice`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: shortPracticeText, genre: currentGenre }),
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setAiAdvice(data.advice);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsFetchingAdvice(false);
-        }
-    };
+
 
     useEffect(() => {
         if (viewMode === "short" && !shortPracticeText) {
             fetchRandomShortScript("女性");
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [viewMode]);
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +125,7 @@ export default function Workspace() {
 
             if (response.ok) {
                 const data = await response.json();
-                const newLines = data.map((item: any, index: number) => ({
+                const newLines = data.map((item: {role: string, text: string}, index: number) => ({
                     id: `pdf-line-${index}`,
                     role: item.role,
                     text: item.text,
@@ -167,28 +146,7 @@ export default function Workspace() {
         }
     };
 
-    const handleSaveScript = async () => {
-        if (lines.length === 0) return;
-        setIsSaving(true);
-        try {
-            const content = lines.map(l => `${l.role}: ${l.text}`).join("\n");
-            const response = await fetch(`${API_BASE}/scripts/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title: scriptTitle, content }),
-            });
-            if (response.ok) {
-                alert("台本を保存しました！");
-            } else {
-                throw new Error("保存に失敗しました");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("エラーが発生しました。");
-        } finally {
-            setIsSaving(false);
-        }
-    };
+
 
     const toggleRole = (index: number) => {
         const newLines = [...lines];
@@ -356,14 +314,7 @@ export default function Workspace() {
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
                                         {isGeneratingSpeech ? "生成中..." : "お手本を聴く"}
                                     </button>
-                                    <button
-                                        onClick={handleGetAdvice}
-                                        disabled={isFetchingAdvice}
-                                        className="text-xs flex items-center gap-2 opacity-50 hover:opacity-100 transition-opacity text-primary"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-                                        {isFetchingAdvice ? "相談中..." : "AIに演技相談"}
-                                    </button>
+
                                 </div>
                                 {sampleAudioUrl && (
                                     <div className="animate-in fade-in slide-in-from-top-1 duration-300">
@@ -502,17 +453,11 @@ export default function Workspace() {
                 <div className="glass rounded-xl p-6 min-h-[200px]">
                     <h3 className="text-lg font-bold border-b pb-2 mb-4 flex items-center gap-2">
                         <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
-                        分析フィードバック
+                         ツールガイド
                     </h3>
-                    {aiAdvice ? (
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            {aiAdvice}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-muted-foreground italic">
-                            「AIに演技相談」ボタンを押すと、このセリフの演技プランやコツをアドバイスします。
-                        </p>
-                    )}
+                    <p className="text-sm text-muted-foreground italic">
+                        マイクボタンを押して録音を開始します。自分の声を客観的に聴くことで、演技の改善点が明確になります。
+                    </p>
                 </div>
 
                 <AccentTool />

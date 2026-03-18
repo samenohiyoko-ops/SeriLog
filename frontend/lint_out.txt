@@ -1,0 +1,73 @@
+﻿
+C:\Users\hinak\engirennsyuusaityo\frontend\.next\types\routes.d.ts
+  13:8   error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  14:14  error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  15:15  error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  16:16  error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+  17:17  error  The `{}` ("empty object") type allows any non-nullish value, including literals like `0` and `""`.
+- If that's what you want, disable this lint rule with an inline comment or configure the 'allowObjectTypes' rule option.
+- If you want a type meaning "any object", you probably want `object` instead.
+- If you want a type meaning "any value", you probably want `unknown` instead  @typescript-eslint/no-empty-object-type
+
+C:\Users\hinak\engirennsyuusaityo\frontend\.next\types\validator.ts
+   9:71   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   9:126  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  10:74   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  10:83   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  12:51   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  14:16   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  14:23   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  16:51   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  18:16   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  18:23   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  19:14   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  20:14   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  25:74   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  25:83   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  27:51   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  29:16   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  29:23   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  31:51   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  33:16   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  33:23   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  34:14   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  35:14   error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  42:9    error  'handler' is assigned a value but only used as a type                                                                @typescript-eslint/no-unused-vars
+  44:3    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  45:8    error  '__Unused' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  51:9    error  'handler' is assigned a value but only used as a type                                                                @typescript-eslint/no-unused-vars
+  53:3    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  54:8    error  '__Unused' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  60:9    error  'handler' is assigned a value but only used as a type                                                                @typescript-eslint/no-unused-vars
+  62:3    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  63:8    error  '__Unused' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  69:9    error  'handler' is assigned a value but only used as a type                                                                @typescript-eslint/no-unused-vars
+  71:3    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  72:8    error  '__Unused' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  78:9    error  'handler' is assigned a value but only used as a type                                                                @typescript-eslint/no-unused-vars
+  80:3    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  81:8    error  '__Unused' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  93:9    error  'handler' is assigned a value but only used as a type                                                                @typescript-eslint/no-unused-vars
+  95:3    error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  96:8    error  '__Unused' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+
+C:\Users\hinak\engirennsyuusaityo\frontend\src\components\Workspace.tsx
+   22:12  error    'isSaving' is assigned a value but never used                                                                         @typescript-eslint/no-unused-vars
+  111:8   warning  React Hook useEffect has a missing dependency: 'shortPracticeText'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  129:50  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  150:11  error    'handleSaveScript' is assigned a value but never used                                                                 @typescript-eslint/no-unused-vars
+
+笨・49 problems (48 errors, 1 warning)
+

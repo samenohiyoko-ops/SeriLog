@@ -23,6 +23,7 @@ export default function RootLayout({
             <div className="container flex h-16 items-center justify-between px-4">
               <div className="flex items-center gap-2">
                 <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/logo.png" alt="SeriLog" className="h-10 w-auto object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                 </Link>
               </div>
